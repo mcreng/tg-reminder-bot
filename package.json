@@ -1,0 +1,30 @@
+{
+  "name": "tg-reminder-bot",
+  "version": "1.0.0",
+  "description": "Telegram reminder bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcreng/tg-reminder-bot.git"
+  },
+  "keywords": [
+    "Telegram",
+    "Reminder",
+    "Bot"
+  ],
+  "author": "mcreng",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcreng/tg-reminder-bot/issues"
+  },
+  "homepage": "https://github.com/mcreng/tg-reminder-bot#readme",
+  "dependencies": {
+    "dotenv": "^6.2.0",
+    "telegraf": "^3.27.0"
+  },
+  "devDependencies": {}
+}
