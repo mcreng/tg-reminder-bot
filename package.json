@@ -24,7 +24,10 @@
   "homepage": "https://github.com/mcreng/tg-reminder-bot#readme",
   "dependencies": {
     "dotenv": "^6.2.0",
+    "firebase": "^5.8.2",
     "telegraf": "^3.27.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^1.18.9"
+  }
 }

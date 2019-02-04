@@ -1,7 +1,8 @@
 require("dotenv").config();
 const Telegraf = require("telegraf");
+const firestore = require("./firestore");
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
 /**
  * /start command.
