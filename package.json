@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/mcreng/tg-reminder-bot#readme",
   "dependencies": {
+    "chrono-node": "^1.3.5",
     "dotenv": "^6.2.0",
     "firebase": "^5.8.2",
     "telegraf": "^3.27.0"

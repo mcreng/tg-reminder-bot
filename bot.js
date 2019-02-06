@@ -4,6 +4,7 @@ const Extra = require("telegraf/extra");
 
 const firebase = require("firebase/app");
 const firestore = require("./firestore");
+const chrono = require("chrono-node");
 
 const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
@@ -68,24 +69,48 @@ bot.on("text", ctx => {
         firestore
           .collection("states")
           .doc(getSessionKey(ctx))
-          .upsert({ toEnterReminder: false });
+          .upsert({
+            toEnterReminder: false,
+            toEnterDate: true,
+            tmpReminderName: ctx.message.text
+          });
 
-        let remindTime = Date.now(); // TODO: hard-coded for now
+        ctx.reply(
+          `When do you want me to remind you of "${
+            ctx.message.text
+          }"?\n\nReply me the item to be reminded of, or cancel the action.`,
+          Extra.markup(m =>
+            m.inlineKeyboard([
+              m.callbackButton("Cancel", "cancelEnterReminder")
+            ])
+          )
+        );
+      } else if (docSnapshot.exists && docSnapshot.data()["toEnterDate"]) {
+        let rawTime = ctx.message.text;
+
+        parsedTime = chrono.parseDate(rawTime);
 
         firestore
           .collection("reminders")
           .doc(getSessionKey(ctx))
           .upsert({
             items: firebase.firestore.FieldValue.arrayUnion({
-              name: ctx.message.text,
-              time: remindTime
+              name: docSnapshot.data()["tmpReminderName"],
+              time: parsedTime
             })
           });
 
         // TODO: Reformat text with proper grammar
         ctx.reply(
-          `I will remind you of "${ctx.message.text}" at ${remindTime}.`
+          `I will remind you of "${
+            docSnapshot.data()["tmpReminderName"]
+          }" at ${parsedTime}.`
         );
+
+        firestore
+          .collection("states")
+          .doc(getSessionKey(ctx))
+          .set({});
       }
     });
 });
@@ -100,7 +125,7 @@ bot.action("cancelEnterReminder", ctx => {
   firestore
     .collection("states")
     .doc(getSessionKey(ctx))
-    .upsert({ toEnterReminder: false });
+    .set({});
 });
 
 module.exports = bot;
