@@ -1,11 +1,13 @@
 require("dotenv").config();
 const Telegraf = require("telegraf");
+const Telegram = require("telegraf/telegram");
 const Extra = require("telegraf/extra");
 
 const firebase = require("firebase/app");
 const firestore = require("./firestore");
 const chrono = require("chrono-node");
 
+const telegram = new Telegram(process.env.TG_BOT_TOKEN);
 const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
 /**
@@ -59,6 +61,11 @@ bot.command("/remind", ctx => {
  * Otherwise, the text is discarded.
  */
 bot.on("text", ctx => {
+  repliedTo = {
+    chat: ctx.update.message.reply_to_message.chat.id,
+    msg: ctx.update.message.reply_to_message.message_id
+  };
+
   firestore
     .collection("states")
     .doc(getSessionKey(ctx))
@@ -74,6 +81,12 @@ bot.on("text", ctx => {
             toEnterDate: true,
             tmpReminderName: ctx.message.text
           });
+
+        telegram.editMessageReplyMarkup(
+          repliedTo["chat"],
+          repliedTo["msg"],
+          (markup = {})
+        );
 
         ctx.reply(
           `When do you want me to remind you of "${
@@ -99,6 +112,12 @@ bot.on("text", ctx => {
               time: parsedTime
             })
           });
+
+        telegram.editMessageReplyMarkup(
+          repliedTo["chat"],
+          repliedTo["msg"],
+          (markup = {})
+        );
 
         // TODO: Reformat text with proper grammar
         ctx.reply(
