@@ -27,7 +27,13 @@ const getSessionKey = ctx => {
 /**
  * /start command.
  */
-bot.start(ctx => ctx.reply("Welcome!"));
+bot.start(ctx => {
+  ctx.reply("Welcome!");
+  firestore
+    .collection("states")
+    .doc(getSessionKey(ctx))
+    .set({});
+});
 
 /**
  * /help command.
@@ -61,10 +67,12 @@ bot.command("/remind", ctx => {
  * Otherwise, the text is discarded.
  */
 bot.on("text", ctx => {
-  repliedTo = {
-    chat: ctx.update.message.reply_to_message.chat.id,
-    msg: ctx.update.message.reply_to_message.message_id
-  };
+  repliedTo = ctx.update.message.reply_to_message
+    ? {
+        chat: ctx.update.message.reply_to_message.chat.id,
+        msg: ctx.update.message.reply_to_message.message_id
+      }
+    : null;
 
   firestore
     .collection("states")
@@ -82,11 +90,13 @@ bot.on("text", ctx => {
             tmpReminderName: ctx.message.text
           });
 
-        telegram.editMessageReplyMarkup(
-          repliedTo["chat"],
-          repliedTo["msg"],
-          (markup = {})
-        );
+        if (repliedTo) {
+          telegram.editMessageReplyMarkup(
+            repliedTo["chat"],
+            repliedTo["msg"],
+            (markup = {})
+          );
+        }
 
         ctx.reply(
           `When do you want me to remind you of "${
@@ -113,11 +123,13 @@ bot.on("text", ctx => {
             })
           });
 
-        telegram.editMessageReplyMarkup(
-          repliedTo["chat"],
-          repliedTo["msg"],
-          (markup = {})
-        );
+        if (repliedTo) {
+          telegram.editMessageReplyMarkup(
+            repliedTo["chat"],
+            repliedTo["msg"],
+            (markup = {})
+          );
+        }
 
         // TODO: Reformat text with proper grammar
         ctx.reply(
