@@ -27,8 +27,9 @@ const getSessionKey = ctx => {
 /**
  * /start command.
  */
-bot.start(ctx => {
-  ctx.reply("Welcome!");
+bot.start(async ctx => {
+  await ctx.reply("Welcome!").then(m => (bot.lastMessageID = m.message_id));
+  console.log(bot.lastMessageID);
   firestore
     .collection("states")
     .doc(getSessionKey(ctx))
@@ -38,7 +39,10 @@ bot.start(ctx => {
 /**
  * /help command.
  */
-bot.help(ctx => ctx.reply("Hi!"));
+bot.help(
+  async ctx =>
+    await ctx.reply("Hi!").then(m => (bot.lastMessageID = m.message_id))
+);
 
 /**
  * /remind command.
@@ -46,13 +50,15 @@ bot.help(ctx => ctx.reply("Hi!"));
  * Upon calling, toEnterReminder state is set, and user is expected to either
  * enter the item to remind next, or cancel the action.
  */
-bot.command("/remind", ctx => {
-  ctx.reply(
-    "What do you want me to remind you of?\n\nReply me the item to be reminded of, or cancel the action.",
-    Extra.markup(m =>
-      m.inlineKeyboard([m.callbackButton("Cancel", "cancelEnterReminder")])
+bot.command("/remind", async ctx => {
+  await ctx
+    .reply(
+      "What do you want me to remind you of?\n\nReply me the item to be reminded of, or cancel the action.",
+      Extra.markup(m =>
+        m.inlineKeyboard([m.callbackButton("Cancel", "cancelEnterReminder")])
+      )
     )
-  );
+    .then(m => (bot.lastMessageID = m.message_id));
   firestore
     .collection("states")
     .doc(getSessionKey(ctx))
@@ -67,6 +73,7 @@ bot.command("/remind", ctx => {
  * Otherwise, the text is discarded.
  */
 bot.on("text", ctx => {
+  // FIXME: PM mode 'Cancel' button removal after user's answer
   repliedTo = ctx.update.message.reply_to_message
     ? {
         chat: ctx.update.message.reply_to_message.chat.id,
@@ -78,7 +85,7 @@ bot.on("text", ctx => {
     .collection("states")
     .doc(getSessionKey(ctx))
     .get()
-    .then(docSnapshot => {
+    .then(async docSnapshot => {
       // check toEnterReminder state
       if (docSnapshot.exists && docSnapshot.data()["toEnterReminder"]) {
         firestore
@@ -98,16 +105,18 @@ bot.on("text", ctx => {
           );
         }
 
-        ctx.reply(
-          `When do you want me to remind you of "${
-            ctx.message.text
-          }"?\n\nReply me the item to be reminded of, or cancel the action.`,
-          Extra.markup(m =>
-            m.inlineKeyboard([
-              m.callbackButton("Cancel", "cancelEnterReminder")
-            ])
+        await ctx
+          .reply(
+            `When do you want me to remind you of "${
+              ctx.message.text
+            }"?\n\nReply me the item to be reminded of, or cancel the action.`,
+            Extra.markup(m =>
+              m.inlineKeyboard([
+                m.callbackButton("Cancel", "cancelEnterReminder")
+              ])
+            )
           )
-        );
+          .then(m => (bot.lastMessageID = m.message_id));
       } else if (docSnapshot.exists && docSnapshot.data()["toEnterDate"]) {
         let rawTime = ctx.message.text;
 
@@ -132,11 +141,13 @@ bot.on("text", ctx => {
         }
 
         // TODO: Reformat text with proper grammar
-        ctx.reply(
-          `I will remind you of "${
-            docSnapshot.data()["tmpReminderName"]
-          }" at ${parsedTime}.`
-        );
+        await ctx
+          .reply(
+            `I will remind you of "${
+              docSnapshot.data()["tmpReminderName"]
+            }" at ${parsedTime}.`
+          )
+          .then(m => (bot.lastMessageID = m.message_id));
 
         firestore
           .collection("states")
