@@ -73,13 +73,21 @@ bot.command("/remind", async ctx => {
  * Otherwise, the text is discarded.
  */
 bot.on("text", ctx => {
-  // FIXME: PM mode 'Cancel' button removal after user's answer
-  repliedTo = ctx.update.message.reply_to_message
-    ? {
-        chat: ctx.update.message.reply_to_message.chat.id,
-        msg: ctx.update.message.reply_to_message.message_id
-      }
-    : null;
+  if (ctx.chat.id < 0) {
+    repliedTo = ctx.update.message.reply_to_message
+      ? {
+          chat: ctx.update.message.reply_to_message.chat.id,
+          msg: ctx.update.message.reply_to_message.message_id
+        }
+      : null;
+  } else {
+    repliedTo = bot.lastMessageID
+      ? {
+          chat: ctx.chat.id,
+          msg: bot.lastMessageID
+        }
+      : null;
+  }
 
   firestore
     .collection("states")
