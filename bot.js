@@ -3,6 +3,7 @@ const Telegraf = require("telegraf");
 const Telegram = require("telegraf/telegram");
 const Extra = require("telegraf/extra");
 
+const moment = require("moment");
 const firebase = require("firebase/app");
 const firestore = require("./firestore");
 const chrono = require("chrono-node");
@@ -126,9 +127,7 @@ bot.on("text", ctx => {
           )
           .then(m => (bot.lastMessageID = m.message_id));
       } else if (docSnapshot.exists && docSnapshot.data()["toEnterDate"]) {
-        let rawTime = ctx.message.text;
-
-        parsedTime = chrono.parseDate(rawTime);
+        parsedTime = chrono.parseDate(ctx.message.text);
 
         firestore
           .collection("reminders")
@@ -148,12 +147,11 @@ bot.on("text", ctx => {
           );
         }
 
-        // TODO: Reformat text with proper grammar
         await ctx
           .reply(
             `I will remind you of "${
               docSnapshot.data()["tmpReminderName"]
-            }" at ${parsedTime}.`
+            }" at ${moment(parsedTime).format("HH:mm, Do MMM YYYY")}.`
           )
           .then(m => (bot.lastMessageID = m.message_id));
 
