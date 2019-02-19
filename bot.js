@@ -10,6 +10,28 @@ const chrono = require("chrono-node");
 
 const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
+(() => {
+  firestore
+    .collection("reminders")
+    .get()
+    .then(snapshot => {
+      if (!snapshot.empty) {
+        const nextEntry = snapshot.docs
+          .map(doc =>
+            doc
+              .data()
+              .items.map(item => {
+                return { id: doc.id, ...item };
+              })
+              .reduce((prev, curr) => (prev.time < curr.time ? prev : curr))
+          )
+          .reduce((prev, curr) => (prev.time < curr.time ? prev : curr));
+
+        console.log(nextEntry);
+      }
+    });
+})();
+
 /**
  * Get session key of current session. Used as unique key in database.
  * @param ctx Context for Telegram update
