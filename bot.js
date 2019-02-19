@@ -8,7 +8,6 @@ const firebase = require("firebase/app");
 const firestore = require("./firestore");
 const chrono = require("chrono-node");
 
-const telegram = new Telegram(process.env.TG_BOT_TOKEN);
 const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
 /**
@@ -107,7 +106,7 @@ bot.on("text", ctx => {
           });
 
         if (repliedTo) {
-          telegram.editMessageReplyMarkup(
+          bot.telegram.editMessageReplyMarkup(
             repliedTo["chat"],
             repliedTo["msg"],
             (markup = {})
@@ -140,7 +139,7 @@ bot.on("text", ctx => {
           });
 
         if (repliedTo) {
-          telegram.editMessageReplyMarkup(
+          bot.telegram.editMessageReplyMarkup(
             repliedTo["chat"],
             repliedTo["msg"],
             (markup = {})
