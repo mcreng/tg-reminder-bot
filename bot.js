@@ -3,34 +3,41 @@ const Telegraf = require("telegraf");
 const Telegram = require("telegraf/telegram");
 const Extra = require("telegraf/extra");
 
+const schedule = require("node-schedule");
+
 const moment = require("moment");
 const firebase = require("firebase/app");
 const firestore = require("./firestore");
 const chrono = require("chrono-node");
-
+const diff = require("deep-diff");
 const bot = new Telegraf(process.env.TG_BOT_TOKEN);
 
-(() => {
-  firestore
-    .collection("reminders")
-    .get()
-    .then(snapshot => {
-      if (!snapshot.empty) {
-        const nextEntry = snapshot.docs
-          .map(doc =>
-            doc
-              .data()
-              .items.map(item => {
-                return { id: doc.id, ...item };
-              })
-              .reduce((prev, curr) => (prev.time < curr.time ? prev : curr))
-          )
-          .reduce((prev, curr) => (prev.time < curr.time ? prev : curr));
+// const getNextReminder = async () =>
+//   firestore
+//     .collection("reminders")
+//     .get()
+//     .then(async snapshot => {
+//       if (!snapshot.empty) {
+//         const nextEntry = snapshot.docs
+//           .map(doc => {
+//             if (!doc.data().items.length) return Infinity;
+//             else
+//               return doc
+//                 .data()
+//                 .items.map(item => {
+//                   return { id: doc.id, ...item };
+//                   // return item;
+//                 })
+//                 .reduce((prev, curr) => (prev.time < curr.time ? prev : curr));
+//           })
+//           .reduce((prev, curr) => (prev.time < curr.time ? prev : curr));
+//         return nextEntry;
+//       }
+//     });
 
-        console.log(nextEntry);
-      }
-    });
-})();
+// bot.command("/check", ctx => {
+//   getNextReminder().then(l => console.log(l));
+// });
 
 /**
  * Get session key of current session. Used as unique key in database.
@@ -46,12 +53,69 @@ const getSessionKey = ctx => {
   return null;
 };
 
+// (async () => {
+//   // purge expired reminders
+//   await (async () => {
+//     var nextReminder = null;
+//     while (typeof nextReminder !== undefined) {
+//       nextReminder = await getNextReminder();
+//       console.log("nextReminder", nextReminder);
+
+//       // no reminders
+//       if (typeof nextReminder == "undefined") break;
+
+//       // no more reminders left
+//       if (nextReminder === Infinity) break;
+
+//       // removed all expired reminders
+//       if (nextReminder.time.seconds >= Date.now() / 1000) break;
+
+//       var { id: nextReminderID, ...nextReminder } = nextReminder;
+//       if (nextReminder !== undefined) {
+//         firestore
+//           .collection("reminders")
+//           .doc(nextReminderID)
+//           .update({
+//             items: await firestore
+//               .collection("reminders")
+//               .doc(nextReminderID)
+//               .get()
+//               .then(items => {
+//                 console.log("items", items.data().items);
+//                 return items
+//                   .data()
+//                   .items.filter(item => diff(item, nextReminder) !== undefined);
+//               })
+//           });
+//       }
+//     }
+//   })();
+
+//   nextReminder = await getNextReminder();
+//   if (typeof nextReminder !== "undefined" && nextReminder !== Infinity) {
+//     schedule.scheduleJob(
+//       new Date(
+//         nextReminder.time.seconds * 1000 + nextReminder.time.nanoseconds
+//       ),
+//       async function() {
+//         nextReminder = await getNextReminder();
+//         // await ctx.reply(
+//         telegram.sendMessage(
+//           nextReminder.id,
+//           `I am here to remind you about '${nextReminder.name}'!`
+//         );
+//         // );
+//       }
+//     );
+//   }
+//   console.log("Initialised.");
+// })();
+
 /**
  * /start command.
  */
 bot.start(async ctx => {
   await ctx.reply("Welcome!").then(m => (bot.lastMessageID = m.message_id));
-  console.log(bot.lastMessageID);
   firestore
     .collection("states")
     .doc(getSessionKey(ctx))
@@ -137,9 +201,7 @@ bot.on("text", ctx => {
 
         await ctx
           .reply(
-            `When do you want me to remind you of "${
-              ctx.message.text
-            }"?\n\nReply me the item to be reminded of, or cancel the action.`,
+            `When do you want me to remind you of "${ctx.message.text}"?\n\nReply me the item to be reminded of, or cancel the action.`,
             Extra.markup(m =>
               m.inlineKeyboard([
                 m.callbackButton("Cancel", "cancelEnterReminder")
@@ -150,15 +212,27 @@ bot.on("text", ctx => {
       } else if (docSnapshot.exists && docSnapshot.data()["toEnterDate"]) {
         parsedTime = chrono.parseDate(ctx.message.text);
 
-        firestore
-          .collection("reminders")
-          .doc(getSessionKey(ctx))
-          .upsert({
-            items: firebase.firestore.FieldValue.arrayUnion({
-              name: docSnapshot.data()["tmpReminderName"],
-              time: parsedTime
-            })
-          });
+        // firestore
+        //   .collection("reminders")
+        //   .doc(getSessionKey(ctx))
+        //   .upsert({
+        //     items: firebase.firestore.FieldValue.arrayUnion({
+        //       name: docSnapshot.data()["tmpReminderName"],
+        //       time: parsedTime
+        //     })
+        //   });
+        schedule.scheduleJob(parsedTime, async function() {
+          await ctx.reply(
+            `I am here to remind you about '${
+              docSnapshot.data()["tmpReminderName"]
+            }'!`
+          );
+        });
+        console.log(
+          `Scheduled reply ${
+            docSnapshot.data()["tmpReminderName"]
+          } at ${parsedTime}.`
+        );
 
         if (repliedTo) {
           bot.telegram.editMessageReplyMarkup(
